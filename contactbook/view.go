@@ -48,7 +48,7 @@ func (c *view) index(w http.ResponseWriter, r *http.Request, p httprouter.Params
 		apimodels.Contact{
 			Id:          1,
 			Name:        "BeforyDeath",
-			Description: "Не забудь сказать: ты что за хуй?!",
+			Description: `Не забудь сказать: "ты что за хуй?!"`,
 			Phone:       "123456",
 		},
 	}
@@ -57,16 +57,16 @@ func (c *view) index(w http.ResponseWriter, r *http.Request, p httprouter.Params
 }
 
 func getupdatelink(id int64) string {
-	return "/api/contact/delete/" + strconv.FormatInt(id, 10)
+	return "/view/contact/" + strconv.FormatInt(id, 10) + "/edit"
 }
 
 func getdeletelink(id int64) string {
-	return "/view/contact/edit/" + strconv.FormatInt(id, 10)
+	return "/api/contact/" + strconv.FormatInt(id, 10) + "/delete"
 }
 
 const viewTemplate = `<html>
-	<h1 align="center">Справочник</h1>
-	<table>
+	<h1 align="center">Контакты</h1>
+	<table width="100%" border="1" cellspacing="0">
 		<thead>
 			<th>ФИО</th>
 			<th>Номер телефона</th>
@@ -77,7 +77,7 @@ const viewTemplate = `<html>
 			{{range .}}
 				<tr>
 					<td>{{.Name}}</td>
-					<td>{{.Phone}}</td>
+					<td align="center">{{.Phone}}</td>
 					<td>{{.Description}}</td>
 					<td>
 						<a href="{{.Id | getupdatelink}}">Изменить</a>
@@ -88,4 +88,9 @@ const viewTemplate = `<html>
 			{{end}}
 		</tbody>
 	</table>
+	<p align="right">
+		<a href="/view/contact/add">
+			<img width="60" src="/api/common/images/plus" />
+		</a>
+	</p>
 </html>`

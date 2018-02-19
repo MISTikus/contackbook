@@ -25,6 +25,11 @@ func NewApi() api {
 			Handler: service.getById,
 		},
 		{
+			Route:   "contact/:id/delete",
+			Method:  common.Get,
+			Handler: service.deleteById,
+		},
+		{
 			Route:   "contact",
 			Method:  common.Post,
 			Handler: service.add,
@@ -48,6 +53,19 @@ func (service api) getById(w http.ResponseWriter, r *http.Request, p httprouter.
 	if err = response(w, contact); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (service api) deleteById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	idString := strings.TrimSpace(p.ByName("id"))
+	_, err := strconv.ParseInt(idString, 10, 32)
+	if idString == "" || err != nil {
+		badRequest(w, "Identifier '"+idString+"' can not be parsed")
+		return
+	}
+
+	log.Println("Removing contact with id: " + idString)
+	
+	http.Redirect(w, r, "/view/index", 301)
 }
 
 func badRequest(w http.ResponseWriter, message string) {

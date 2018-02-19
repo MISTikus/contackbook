@@ -4,12 +4,14 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/MISTikus/contactbook/common"
 	"github.com/MISTikus/contactbook/contactbook"
 	"github.com/julienschmidt/httprouter"
 )
 
 func main() {
 	apiservice := contactbook.NewApi()
+	commonservice := common.NewApi()
 	viewservice := contactbook.NewView()
 
 	router := httprouter.New()
@@ -18,6 +20,9 @@ func main() {
 	}
 	for _, r := range viewservice.Routes {
 		router.Handle(r.Method, "/view/"+r.Route, r.Handler)
+	}
+	for _, r := range commonservice.Routes {
+		router.Handle(r.Method, "/api/"+r.Route, r.Handler)
 	}
 
 	router.Handle(viewservice.DefaultRoute.Method, "/", viewservice.DefaultRoute.Handler)
