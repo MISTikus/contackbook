@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "command": "powershell",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "go build cmd/main.go",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+        }
+    ]
+}
