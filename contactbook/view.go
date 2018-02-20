@@ -3,11 +3,11 @@ package contactbook
 import (
 	"html/template"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/MISTikus/contactbook/apimodels"
-
 	"github.com/MISTikus/contactbook/common"
 	"github.com/julienschmidt/httprouter"
 )
@@ -15,11 +15,14 @@ import (
 type view struct {
 	Routes       []common.Route
 	DefaultRoute common.Route
+	TagMap       map[string]map[string]string
 }
 
 func NewView() view {
 	// ToDo: initialize data from api
-	service := view{}
+	service := view{
+		TagMap: getmaps(apimodels.Contact{}),
+	}
 	service.Routes = []common.Route{
 		{
 			Route:   "index",
@@ -31,7 +34,7 @@ func NewView() view {
 	return service
 }
 
-func (c *view) index(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (v *view) index(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	if !strings.Contains(r.RequestURI, "index") {
 		http.Redirect(w, r, "/view/index", 301)
 		return
@@ -40,6 +43,7 @@ func (c *view) index(w http.ResponseWriter, r *http.Request, p httprouter.Params
 	funcMap := template.FuncMap{
 		"getupdatelink": getupdatelink,
 		"getdeletelink": getdeletelink,
+		"gettag":        v.gettag,
 	}
 
 	t := template.Must(template.New("index").Funcs(funcMap).Parse(viewTemplate))
@@ -64,13 +68,36 @@ func getdeletelink(id int64) string {
 	return "/api/contact/" + strconv.FormatInt(id, 10) + "/delete"
 }
 
+func (v *view) gettag(field string, tag string) string {
+	return v.TagMap[field][tag]
+}
+
+func getmaps(obj interface{}) map[string]map[string]string {
+	t := reflect.TypeOf(obj)
+	result := map[string]map[string]string{}
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		m := map[string]string{}
+		for _, element := range strings.Fields(string(f.Tag)) {
+			split := strings.Split(element, ":")
+			if len(split) > 1 {
+				m[split[0]] = strings.Replace(split[1], `"`, "", -1)
+			} else {
+				m[split[0]] = ""
+			}
+		}
+		result[f.Name] = m
+	}
+	return result
+}
+
 const viewTemplate = `<html>
 	<h1 align="center">Контакты</h1>
 	<table width="100%" border="1" cellspacing="0">
 		<thead>
-			<th>ФИО</th>
-			<th>Номер телефона</th>
-			<th>Примечание</th>
+			<th>{{gettag "Name" "desc"}}</th>
+			<th>{{gettag "Phone" "desc"}}</th>
+			<th>{{gettag "Description" "desc"}}</th>
 			<th>Действия</th>
 		</thead>
 		<tbody>
