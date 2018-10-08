@@ -10,6 +10,6 @@ const Delete = "DELETE"
 
 type Route struct {
 	Method  string
-	Route   string
+	Url   string
 	Handler httprouter.Handle
 }

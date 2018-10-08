@@ -11,20 +11,19 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MISTikus/gotalotoftime/common"
 	"github.com/julienschmidt/httprouter"
 )
 
 type api struct {
-	Routes []common.Route
+	Routes []Route
 }
 
 func NewApi() api {
 	service := api{}
-	service.Routes = []common.Route{
+	service.Routes = []Route{
 		{
-			Route:   "common/images/:imageName",
-			Method:  common.Get,
+			Url:   "common/images/:imageName",
+			Method:  Get,
 			Handler: service.getImage,
 		},
 	}

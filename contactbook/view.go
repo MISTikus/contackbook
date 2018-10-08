@@ -25,7 +25,7 @@ func NewView() view {
 	}
 	service.Routes = []common.Route{
 		{
-			Route:   "index",
+			Url:   "index",
 			Method:  common.Get,
 			Handler: service.index,
 		},

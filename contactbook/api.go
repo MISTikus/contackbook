@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/MISTikus/contactbook/apimodels"
 	"github.com/MISTikus/contactbook/common"
@@ -13,34 +14,63 @@ import (
 )
 
 type api struct {
-	Routes []common.Route
+	Routes   []common.Route
+	Contacts []apimodels.Contact // temporary virtual database
 }
 
-func NewApi() api {
+func NewApi() *api {
 	service := api{}
 	service.Routes = []common.Route{
 		{
-			Route:   "contact/:id",
+			Url:   "contact/:id",
 			Method:  common.Get,
 			Handler: service.getById,
 		},
 		{
-			Route:   "contact/:id/delete",
+			Url:   "contact/:id/delete",
 			Method:  common.Get,
 			Handler: service.deleteById,
 		},
 		{
-			Route:   "contact",
+			Url:   "contact",
 			Method:  common.Post,
 			Handler: service.add,
 		},
+
+		// Alternate routes
+		{
+			Url:   "users",
+			Method:  common.Get,
+			Handler: service.getList,
+		},
+		{
+			Url:   "user",
+			Method:  common.Put,
+			Handler: service.create,
+		},
+		{
+			Url:   "user/:id",
+			Method:  common.Get,
+			Handler: service.getById,
+		},
+		{
+			Url:   "user/:id",
+			Method:  common.Post,
+			Handler: service.updateById,
+		},
+		{
+			Url:   "user/:id",
+			Method:  common.Delete,
+			Handler: service.deleteById,
+		},
 	}
-	return service
+	service.Contacts = []apimodels.Contact{}
+	return &service
 }
 
-func (service api) getById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (service *api) getById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	idString := strings.TrimSpace(p.ByName("id"))
-	_, err := strconv.ParseInt(idString, 10, 32)
+	id, err := strconv.ParseInt(idString, 10, 32)
 	if idString == "" || err != nil {
 		badRequest(w, "Identifier '"+idString+"' can not be parsed")
 		return
@@ -48,24 +78,88 @@ func (service api) getById(w http.ResponseWriter, r *http.Request, p httprouter.
 
 	log.Println("Resolving contact with id: " + idString)
 
-	contact := apimodels.Contact{Name: "SomeName", Phone: "13251221", Description: "Нигадяй..."}
-
-	if err = response(w, contact); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+	for _, contact := range service.Contacts {
+		if contact.Id == id{
+			if err = response(w, contact); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			} else {
+				return
+			}
+		}
 	}
 }
 
-func (service api) deleteById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (service *api) getList(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	log.Println("Resolving contacts list")
+
+	if len(service.Contacts) > 0{
+		if err := response(w, service.Contacts); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	}
+}
+
+func (service *api) deleteById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	idString := strings.TrimSpace(p.ByName("id"))
-	_, err := strconv.ParseInt(idString, 10, 32)
+	id, err := strconv.ParseInt(idString, 10, 32)
 	if idString == "" || err != nil {
 		badRequest(w, "Identifier '"+idString+"' can not be parsed")
 		return
 	}
 
 	log.Println("Removing contact with id: " + idString)
-	
-	http.Redirect(w, r, "/view/index", 301)
+
+	for i, contact := range service.Contacts {
+		if contact.Id == id{
+			service.Contacts = append(service.Contacts[:i], service.Contacts[i+1:]...)
+		}
+	}
+}
+
+func (service *api) updateById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	idString := strings.TrimSpace(p.ByName("id"))
+	id, err := strconv.ParseInt(idString, 10, 32)
+	if idString == "" || err != nil {
+		badRequest(w, "Identifier '"+idString+"' can not be parsed")
+		return
+	}
+	decoder := json.NewDecoder(r.Body)
+	var contact apimodels.Contact
+	err = decoder.Decode(&contact)
+	if err != nil {
+		badRequest(w, "Failed to parse request body")
+	}
+
+	log.Println("Removing contact with id: " + idString)
+
+	for i, c := range service.Contacts {
+		if c.Id == id{
+			c.Description = contact.Description
+			c.Name = contact.Name
+			c.Phone = contact.Phone
+			c.UpdateAt = time.Now()
+			service.Contacts = append(service.Contacts[:i], append(service.Contacts[i+1:], c)...)
+		}
+	}
+}
+
+func (service *api) create(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	decoder := json.NewDecoder(r.Body)
+	var contact apimodels.Contact
+	err := decoder.Decode(&contact)
+	if err != nil {
+		badRequest(w, "Failed to parse request body")
+	}
+
+	log.Println("Creating contact.")
+
+	contact.CreatedAt = time.Now()
+	contact.UpdateAt = time.Now()
+
+	service.Contacts = append(service.Contacts, contact)
+	if err = response(w, nil); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func badRequest(w http.ResponseWriter, message string) {
