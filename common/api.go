@@ -11,27 +11,27 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/MISTikus/gotalotoftime/common"
 	"github.com/julienschmidt/httprouter"
 )
 
-type api struct {
-	Routes []common.Route
+type Api struct {
+	Prefix string
+	Routes []Route
 }
 
-func NewApi() api {
-	service := api{}
-	service.Routes = []common.Route{
+func NewApi() *Api {
+	service := Api{Prefix: "common"}
+	service.Routes = []Route{
 		{
-			Route:   "common/images/:imageName",
-			Method:  common.Get,
+			Url:   "images/:imageName",
+			Method:  Get,
 			Handler: service.getImage,
 		},
 	}
-	return service
+	return &service
 }
 
-func (service api) getImage(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (service *Api) getImage(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	idString := strings.TrimSpace(p.ByName("imageName"))
 	if idString == "" {
 		badRequest(w, "Identifier '"+idString+"' can not be parsed")
