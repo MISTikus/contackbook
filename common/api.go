@@ -14,23 +14,24 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-type api struct {
+type Api struct {
+	Prefix string
 	Routes []Route
 }
 
-func NewApi() api {
-	service := api{}
+func NewApi() *Api {
+	service := Api{Prefix: "common"}
 	service.Routes = []Route{
 		{
-			Url:   "common/images/:imageName",
+			Url:   "images/:imageName",
 			Method:  Get,
 			Handler: service.getImage,
 		},
 	}
-	return service
+	return &service
 }
 
-func (service api) getImage(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+func (service *Api) getImage(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	idString := strings.TrimSpace(p.ByName("imageName"))
 	if idString == "" {
 		badRequest(w, "Identifier '"+idString+"' can not be parsed")

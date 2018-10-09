@@ -1,36 +1,52 @@
 package main
 
 import (
-	"log"
-	"net/http"
-	"os"
-
 	"github.com/MISTikus/contactbook/common"
 	"github.com/MISTikus/contactbook/contactbook"
 	"github.com/julienschmidt/httprouter"
+	"log"
+	"net/http"
+	"os"
 )
 
 func main() {
 	port := os.Args[1]
 
-	apiservice := contactbook.NewApi()
-	commonservice := common.NewApi()
-	viewservice := contactbook.NewView()
+	viewService := contactbook.NewView()
+	apiService := contactbook.NewApi()
+	commonService := common.NewApi()
+
+	viewService.Api = apiService
+	viewService.Common = commonService
+	apiService.ChangeHandler = viewService
 
 	router := httprouter.New()
-	for _, r := range apiservice.Routes {
-		router.Handle(r.Method, "/api/"+r.Url, r.Handler)
+
+	var routes []string
+	for _, r := range apiService.Routes {
+		route := common.BuildUrl("api", apiService.Prefix, r.Url)
+		routes = append(routes, r.Method + ": " + route)
+		router.Handle(r.Method, route, r.Handler)
 	}
-	for _, r := range viewservice.Routes {
-		router.Handle(r.Method, "/view/"+r.Url, r.Handler)
+	for _, r := range viewService.Routes {
+		route := common.BuildUrl("view", viewService.Prefix, r.Url)
+		routes = append(routes, r.Method + ": " + route)
+		router.Handle(r.Method, route, r.Handler)
 	}
-	for _, r := range commonservice.Routes {
-		router.Handle(r.Method, "/api/"+r.Url, r.Handler)
+	for _, r := range commonService.Routes {
+		route := common.BuildUrl("api", commonService.Prefix, r.Url)
+		routes = append(routes, r.Method + ": " + route)
+		router.Handle(r.Method, route, r.Handler)
 	}
 
-	router.Handle(viewservice.DefaultRoute.Method, "/", viewservice.DefaultRoute.Handler)
+	router.Handle(viewService.DefaultRoute.Method, "/list", viewService.DefaultRoute.Handler)
+	router.Handle(viewService.DefaultRoute.Method, "/", viewService.DefaultRoute.Handler)
 
 	log.Println("Service started listening on 'http://localhost:"+port+"' ...")
+	log.Println("Currently listening routes:")
+	for _, route := range routes {
+		log.Println("\t" + route)
+	}
 
 	log.Fatal(http.ListenAndServe(":"+port+"", router))
 
