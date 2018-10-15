@@ -1,0 +1,67 @@
+{{ define "httpClientScript" }}
+/// HTTP Client ///
+var http = (function () {
+    function HttpClient() {
+        this.xhr = new XMLHttpRequest();
+        this.async = true;
+    }
+
+    function sendRequest(method, url, body, callbacks) {
+        var self = this;
+        this.xhr.open(method, url, this.async);
+
+        if (method === 'POST') {
+            this.xhr.setRequestHeader('Content-type', 'application/json');
+        }
+
+        this.xhr.send(body);
+        this.xhr.onreadystatechange = function onRequestStateChange() {
+            var done = 4;
+            var ok = 200;
+            if (self.xhr.readyState != done) {
+                return;
+            }
+            if (self.xhr.status !== ok && self.xhr.status !== 201) {
+                callbacks.onerror({ status: self.xhr.status, statusText: self.xhr.statusText });
+                return;
+            } else {
+                callbacks.onsuccess(self.xhr.response ? JSON.parse(self.xhr.response) : null, self.xhr.status);
+            }
+        }
+    }
+
+    HttpClient.prototype.get = function sendGet(url, callbacks) {
+        sendRequest.call(this, 'GET', url, null, callbacks);
+    }
+
+    HttpClient.prototype.post = function sendPost(url, body, callbacks) {
+        sendRequest.call(this, 'POST', url, body, callbacks);
+    }
+
+    HttpClient.prototype.delete = function sendDelete(url, callbacks) {
+        sendRequest.call(this, 'DELETE', url, null, callbacks);
+    }
+
+    HttpClient.prototype.put = function sendPut(url, body, callbacks) {
+        sendRequest.call(this, 'PUT', url, body, callbacks);
+    }
+
+    return new HttpClient();
+})();
+
+var toJSONString = (function ( form ) {
+    var obj = {};
+    var elements = form.querySelectorAll( "input, select, textarea" );
+    for( var i = 0; i < elements.length; ++i ) {
+        var element = elements[i];
+        var name = element.name;
+        var value = element.value;
+
+        if( name ) {
+            obj[ name ] = value;
+        }
+    }
+    return JSON.stringify( obj );
+});
+/// HTTP Client ///
+{{ end }}
