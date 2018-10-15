@@ -1,0 +1,30 @@
+{{ define "delete" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script>
+        {{ template "httpClientScript" }}
+        document.addEventListener('DOMContentLoaded', function(){
+            var form = document.querySelector('form');
+            form.addEventListener('submit', function onSubmit(event) {
+                event.preventDefault();
+                http.delete(form.action, {
+                    onsuccess: function() { window.close() },
+                    onerror: function() { alert(error); window.close(); }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Удалить</h1>
+    <h3>Уверены, что хотите удалить контакт с идентиифкатором {{.Id}}?</h3>
+    <form action="{{.Id | getdeleteurl}}" method="DELETE">
+        <input type="submit" value="Delete" /><br />
+        <input type="button" value="Cancel" onclick="window.close()" />
+    </form>
+</body>
+</html>
+{{ end }}

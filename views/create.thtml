@@ -1,0 +1,31 @@
+{{ define "create" }}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script>
+        {{ template "httpClientScript" }}
+        document.addEventListener('DOMContentLoaded', function(){
+            var form = document.querySelector('form');
+            form.addEventListener('submit', function onSubmit(event) {
+                event.preventDefault();
+                http.put(form.action, toJSONString(form), {
+                    onsuccess: function() { window.close() },
+                    onerror: function() { alert(error); window.close(); }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <h1>Создать</h1>
+    <form action="{{getcreateurl}}"  method="PUT">
+        <label>{{gettag "Name" "desc"}}</label><input name="name" type="text" value="{{.Name}}" /><br />
+        <label>{{gettag "Phone" "desc"}}</label><input name="phone" type="text" value="{{.Phone}}" /><br />
+        <label>{{gettag "Description" "desc"}}</label><textarea name="desc" cols="40" rows="3">{{.Description}}</textarea><br />
+        <input type="submit" value="Submit" />
+    </form>
+</body>
+</html>
+{{ end }}

@@ -1,0 +1,22 @@
+{{ define "longPoolingScript" }}
+/// Long pooling ///
+document.addEventListener('DOMContentLoaded', function(){
+    var pooling = (function(){
+        window.setTimeout(function(){
+            http.get({{gethaschangeslink}}, {
+                onsuccess: function(obj, status) {
+                    if (status === 201){
+                        location.reload();
+                    } else {
+                        console.log("No changes, continue...")
+                        pooling();
+                    }
+                },
+                onerror: function(err){ console.log(err); }
+            });
+        },1000);
+    });
+    pooling();
+});
+/// Long pooling ///
+{{ end }}
