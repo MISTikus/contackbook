@@ -2,6 +2,7 @@ package contactbook
 
 import (
 	"encoding/json"
+	"github.com/MISTikus/contactbook/data"
 	"log"
 	"net/http"
 	"strconv"
@@ -17,7 +18,7 @@ type api struct {
 	Prefix        string
 	maxId         int64
 	Routes        []common.Route
-	contacts      []apimodels.Contact // temporary virtual database
+	repository    *data.Repository
 	ChangeHandler ChangeHandler
 }
 
@@ -25,54 +26,44 @@ type ChangeHandler interface {
 	HandleChanges()
 }
 
-func NewApi(/*changeHandler *ChangeHandler*/) *api {
+func NewApi(repository *data.Repository) *api {
 	service := api{
-		Prefix:"users",
-		//ChangeHandler: changeHandler
+		Prefix:     "users",
+		repository: repository,
 	}
 	service.Routes = []common.Route{
 		{
-			Url:   "",
+			Url:     "",
 			Method:  common.Get,
 			Handler: service.getList,
 		},
 		{
-			Url:   "",
+			Url:     "",
 			Method:  common.Put,
 			Handler: service.create,
 		},
 		{
-			Url:   ":id",
+			Url:     ":id",
 			Method:  common.Get,
 			Handler: service.getById,
 		},
 		{
-			Url:   ":id",
+			Url:     ":id",
 			Method:  common.Post,
 			Handler: service.updateById,
 		},
 		{
-			Url:   ":id",
+			Url:     ":id",
 			Method:  common.Delete,
 			Handler: service.deleteById,
 		},
 	}
-	service.contacts = []apimodels.Contact{
-		{
-			Id:          1,
-			Name:        "BeforyDeath",
-			Description: `Не забудь сказать: "ты что за хуй?!"`,
-			Phone:       "123456",
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		},
-	}
-	service.maxId = 1
+
 	return &service
 }
 
 func (service *api) GetContacts() []apimodels.Contact {
-	return service.contacts
+	return service.repository.GetAll()
 }
 
 func (service *api) getById(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -84,25 +75,20 @@ func (service *api) getById(w http.ResponseWriter, r *http.Request, p httprouter
 	}
 
 	log.Println("Resolving contact with id: " + idString)
+	c, _ := service.repository.Get(id)
 
-	for _, contact := range service.contacts {
-		if contact.Id == id{
-			if err = response(w, contact); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-			} else {
-				return
-			}
-		}
+	if err = response(w, c); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	} else {
+		return
 	}
 }
 
 func (service *api) getList(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
 	log.Println("Resolving contacts list")
 
-	if len(service.contacts) > 0{
-		if err := response(w, service.contacts); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
+	if err := response(w, service.repository.GetAll()); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -116,11 +102,7 @@ func (service *api) deleteById(w http.ResponseWriter, r *http.Request, p httprou
 
 	log.Println("Removing contact with id: " + idString)
 
-	for i, contact := range service.contacts {
-		if contact.Id == id{
-			service.contacts = append(service.contacts[:i], service.contacts[i+1:]...)
-		}
-	}
+	service.repository.Delete(id)
 	service.ChangeHandler.HandleChanges()
 }
 
@@ -139,19 +121,12 @@ func (service *api) updateById(w http.ResponseWriter, r *http.Request, p httprou
 		badRequest(w, "Failed to parse body")
 		return
 	}
+	contact.Id = id
 	contact.UpdatedAt = time.Now()
 
 	log.Println("Removing contact with id: " + idString)
 
-	for i, c := range service.contacts {
-		if c.Id == id{
-			c.Description = contact.Description
-			c.Name = contact.Name
-			c.Phone = contact.Phone
-			c.UpdatedAt = time.Now()
-			service.contacts = append(append(service.contacts[:i], c), service.contacts[i+1:]...)
-		}
-	}
+	service.repository.Update(contact)
 	service.ChangeHandler.HandleChanges()
 }
 
@@ -170,10 +145,7 @@ func (service *api) create(w http.ResponseWriter, r *http.Request, p httprouter.
 
 	log.Println("Creating contact.")
 
-	service.contacts = append(service.contacts, contact)
-	if err = response(w, nil); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	service.repository.Add(contact)
 	service.ChangeHandler.HandleChanges()
 }
 
