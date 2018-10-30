@@ -14,3 +14,4 @@
 # Debug build
 debug
 /.idea
+data.json

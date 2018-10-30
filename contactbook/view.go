@@ -1,6 +1,7 @@
 package contactbook
 
 import (
+	"github.com/MISTikus/contactbook/data"
 	"html/template"
 	"net/http"
 	"reflect"
@@ -22,13 +23,15 @@ type view struct {
 	tagMap       map[string]map[string]string
 	funcMap      map[string]interface{}
 	changed      bool
+	repository   *data.Repository
 }
 
-func NewView() *view {
+func NewView(repository *data.Repository) *view {
 	// ToDo: initialize data from api
 	service := view{
-		Prefix: "",
-		tagMap: getmaps(apimodels.Contact{}),
+		Prefix:     "",
+		tagMap:     getmaps(apimodels.Contact{}),
+		repository: repository,
 	}
 	service.funcMap = service.getFuncMap()
 	service.Routes = []common.Route{
@@ -99,12 +102,8 @@ func (v *view) update(w http.ResponseWriter, r *http.Request, p httprouter.Param
 
 	t := template.Must(template.New("update").Funcs(v.funcMap).ParseGlob("views/" + "*.t*"))
 
-	for _, contact := range v.Api.contacts {
-		if contact.Id == id {
-			t.Execute(w, contact)
-			break
-		}
-	}
+	contact, _ := v.repository.Get(id)
+	t.Execute(w, contact)
 }
 
 func (v *view) create(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
@@ -123,12 +122,8 @@ func (v *view) delete(w http.ResponseWriter, r *http.Request, p httprouter.Param
 
 	t := template.Must(template.New("delete").Funcs(v.funcMap).ParseGlob("views/" + "*.t*"))
 
-	for _, contact := range v.Api.contacts {
-		if contact.Id == id {
-			t.Execute(w, contact)
-			break
-		}
-	}
+	contact, _ := v.repository.Get(id)
+	t.Execute(w, contact)
 }
 
 func (v *view) hasChanges(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
